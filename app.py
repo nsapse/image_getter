@@ -28,14 +28,20 @@ def return_img_url(search_string):
     return jsonify(data)
 
 
-@app.route("/pokemon/<search_string>")
-def return_pokemon_url(search_string):
+@app.route("/pokemon/<pokemon_name>")
+def return_pokemon_url(pokemon_name: str):
+    data = {'img_url': getPokemonImageURL(pokemon_name)}
+    return jsonify(data)
+
+
+@app.route("/wikipedia/<search_string>")
+def return_wikipedia_url(search_string):
     """Route function which takes the query string being passed as part
     of the route and calls getImageURL then returns the URL as JSON.
     :returns: A JSON object containing {img_url: [the image url]}
 
     """
-    data = {'img_url': getPokemonImageURL(search_string)}
+    data = {'img_url': wikiImageURL(search_string)}
     return jsonify(data)
 
 # primary function for getting and returning strings - called by flask
@@ -49,9 +55,6 @@ def getGenericImageURL(search_string):
     :returns: str -> imgURL
 
     """
-
-    # # link to image of OSU beaver for failed queries
-    # failure_image = 'https: // upload.wikimedia.org/wikipedia/en/thumb/1/1b/Oregon_State_Beavers_logo.svg/1200px-Oregon_State_Beavers_logo.svg.png'
 
     # generate the actual search query and return it
 
@@ -69,7 +72,7 @@ def getGenericImageURL(search_string):
     return 'https:' + agnostic_link
 
 
-def getPokemonImageURL(pokemon):
+def wikiImageURL(pokemon):
     """getPokemonImageURL- given a search string returns the URL to an image
     of a Pokemon from Wikipedia related to the string
 
@@ -110,3 +113,27 @@ def executeQuery(baseURL: str, searchSTR: str):
     parsed_content = BeautifulSoup(search_return.content, 'html.parser')
 
     return (parsed_content, True)
+
+
+def getPokemonImageURL(name: str):
+    pokemon_base = 'https://bulbapedia.bulbagarden.net/wiki/'
+    pokemon_suffix = '_(Pokemon)'
+
+    pokemon_url = pokemon_base + name + pokemon_suffix
+
+    page = requests.get(pokemon_url)
+
+    if page.status_code != 200:
+        print("error: no pokemon of that name")
+        return(failure_image,  False)
+
+    parsed_page = BeautifulSoup(page.content, 'html.parser')
+
+    links = parsed_page.find_all('a')
+
+    for link in links:
+        title = link.get('title')
+        if title:
+            if title.lower() == name.lower():
+                image_link = link.findChildren('img')
+                return ('http:' + image_link[0]['src'])
